@@ -1,6 +1,6 @@
-# 🗯️ Lumos Application
+# 🗯️ Lumos Super Admin client
 
-🙏 **Welcome to the Super Admin for Lumos application!**
+🙏 **Welcome to the Super Admin for the Lumos application!**
 
 📝 **Description:**
 This is a platform for creating and publishing short photo stories with a focus on visual aesthetics and instant feedback. Users can upload their photos, apply dynamic filters, share moments in real time, as well as express their thoughts and emotions, and take part in discussions. Additionally, users can subscribe to accounts they find interesting and like unconventional posts. The app also features a built-in messenger for communication.
