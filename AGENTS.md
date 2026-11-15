@@ -9,7 +9,7 @@ Before making changes, read:
 
 ## Project Context
 
-This is a Next.js 16 client application for a social network. It uses the App Router and TypeScript. At the first
+This is a Next.js 16 admin client application for a social network. It uses the App Router and TypeScript. At the first
 development stage, treat it as a client-side SPA. Do not add SSR, Server Actions, server-side data loading, Route
 Handlers, or SEO functionality unless the task explicitly asks for them.
 

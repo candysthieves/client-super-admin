@@ -1,6 +1,6 @@
 # Client
 
-Client is the frontend application for a social network. It uses Next.js 16, the App Router, TypeScript, React, and
+Client Super Admin is the admin frontend application for a social network. It uses Next.js 16, the App Router, TypeScript, React, and
 pnpm. During the first development stage, treat the project as a client-side SPA: keep rendering behavior, state,
 navigation, and data loading on the client unless a task explicitly requires server-side functionality.
 
