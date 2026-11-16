@@ -8,10 +8,10 @@ import { AuthShellContent } from './AuthShellContent'
 
 export function AuthShell({ children }: { children: ReactNode }) {
   // TODO Temporary solution starts:
-  // const { isAuthenticated, isLoading, isHydrated } = useAuth()
-  const isHydrated = true
-  const isAuthenticated = true
-  const isLoading = false
+  // const { isAuthenticated, isLoading, isHydrated } = useAuth() // uncomment
+  const isHydrated = true // comment
+  const isAuthenticated = true // comment
+  const isLoading = false // comment
   // TODO Temporary solution ends
   /**
    * Server cannot read localStorage, so auth state is unknown during SSR and
