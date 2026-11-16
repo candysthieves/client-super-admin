@@ -3,9 +3,7 @@
 🙏 **Welcome to the Super Admin for the Lumos application!**
 
 📝 **Description:**
-This is a platform for creating and publishing short photo stories with a focus on visual aesthetics and instant feedback. Users can upload their photos, apply dynamic filters, share moments in real time, as well as express their thoughts and emotions, and take part in discussions. Additionally, users can subscribe to accounts they find interesting and like unconventional posts. The app also features a built-in messenger for communication.
-
-🎯 **The app's goal** is to bring together creative and artistic people who need a light, inspiring environment without being overwhelmed by ads, so they can quickly find an audience and receive high-quality feedback from like-minded individuals.
+A web-based administrative panel **Superadmin** for managing system users. The application interacts with the server via a GraphQL API and provides tools for authorization, viewing, searching, sorting, and deleting users, as well as retrieving detailed information about each user.
 
 🍭 Developed by team **Candy Thieves**:
 

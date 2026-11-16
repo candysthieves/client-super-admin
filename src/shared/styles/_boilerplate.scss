@@ -1,0 +1,97 @@
+@use 'mixins' as *;
+
+html {
+  // Reserve a stable vertical scrollbar gutter on the root scroller so the
+  // centered layout (and sticky sidebar) don't shift when the window
+  // scrollbar appears/disappears during navigation.
+  scrollbar-gutter: stable;
+
+  // The feed overflows the root box horizontally (the Carousel slides inside
+  // the post cards report a right edge past the viewport), which adds a
+  // horizontal scrollbar to the page. That scrollbar then eats 15px of the
+  // viewport height and makes `body`'s `min-height: 100vh` overflow as well, so
+  // both scrollbars show up on a page that has no visible content out there.
+  // `clip` (not `hidden`) keeps the root out of scroll-container business, so
+  // `position: sticky` on the sidebar and `position: fixed` on the header keep
+  // resolving against the viewport.
+  overflow-x: clip;
+
+  box-sizing: border-box;
+
+  font-size: 100%;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+input,
+button,
+select,
+textarea,
+optgroup,
+option {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  color: inherit;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+
+  min-height: 100vh;
+  margin: 0;
+
+  // padding: $header-height 0 0 0; // TODO return back when dashboard panel content will be added
+  padding: 0;
+
+  font-family: var(--font-family-primary), sans-serif;
+  line-height: var(--line-height-m);
+  color: var(--color-light-100);
+
+  background-color: var(--color-dark-900);
+}
+
+ul {
+  margin: 0;
+}
+
+[class*='_overlay_'] {
+  z-index: 101;
+}
+
+[role='dialog'] {
+  z-index: 102;
+}
+
+[data-radix-popper-content-wrapper] {
+  z-index: 105 !important;
+}
+
+// react-remove-scroll (Radix Dialog scroll lock) writes onto body[data-scroll-locked]:
+//   1. `margin-right: <scrollbar width>px !important` — its own compensation for
+//      the scrollbar it hides. `scrollbar-gutter: stable` on the root already
+//      keeps that space reserved while the lock is on, so the margin is a second
+//      compensation: it narrows the centred column and shifts the sticky sidebar.
+//   2. `padding-top: <body margin-top>px` — 0 here — which drops the offset that
+//      reserves room for the fixed header, so the content jumps up under it.
+//   3. `position: relative !important`, which turns body into the containing
+//      block for portalled absolutely positioned overlays.
+// The layout is width-stable without any of this, so the lock is simply neutralised.
+html body[data-scroll-locked] {
+  position: static !important;
+  margin-right: 0 !important;
+  padding: $header-height 0 0 0 !important;
+}
+
+[data-radix-popper-content-wrapper] {
+  z-index: 105 !important;
+}

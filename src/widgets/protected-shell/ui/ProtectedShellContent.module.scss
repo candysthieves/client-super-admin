@@ -1,0 +1,7 @@
+@use '@/shared/styles/mixins' as *;
+
+.content {
+  @include content;
+
+  position: relative;
+}
