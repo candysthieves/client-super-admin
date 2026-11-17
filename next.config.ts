@@ -2,21 +2,16 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    agentFeedback: true,
-  },
-  cacheComponents: true,
-  partialPrefetching: true,
+  reactStrictMode: false,
+  reactCompiler: true,
+  output: 'standalone',
   turbopack: {
-    rules: {
-      '*.css': {
-        loaders: ['@tailwindcss/turbopack'],
-        as: '*.css',
-      },
-    },
+    root: __dirname,
   },
   images: {
     remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'i.pravatar.cc' },
       { protocol: 'https', hostname: '*.s3.eu-north-1.amazonaws.com' },
       {
         protocol: 'https',

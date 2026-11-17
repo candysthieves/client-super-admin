@@ -1,0 +1,248 @@
+import { ApiError } from '@/shared/api'
+import { ACCESS_TOKEN_LS_KEY, NEXT_PUBLIC_API_URL } from '@/shared/constants'
+import { isAccessTokenError, isErrorResponse, refreshAccessToken } from '@/shared/lib/utils'
+
+let refreshPromise: null | Promise<string> = null
+
+export async function request<T>(input: string, init?: RequestInit): Promise<T> {
+  const accessToken =
+    typeof window !== 'undefined' ? localStorage.getItem(ACCESS_TOKEN_LS_KEY) : undefined
+
+  const body = init?.body
+  const isFormData = body instanceof FormData
+
+  const createHeaders = (token?: null | string) => {
+    const headers = new Headers(init?.headers)
+
+    // FormData:
+    // DO NOT set the Content-Type manually.
+    // The browser will set it automatically:
+    // multipart/form-data; boundary=...
+    if (isFormData) {
+      headers.delete('Content-Type')
+    } else if (body !== undefined && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json')
+    }
+
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
+
+    return headers
+  }
+
+  const createRequestInit = (token?: null | string): RequestInit => ({
+    ...init,
+    credentials: 'include',
+    headers: createHeaders(token),
+  })
+
+  let response = await fetch(`${NEXT_PUBLIC_API_URL}${input}`, createRequestInit(accessToken))
+
+  // let response = await fetch(`${NEXT_PUBLIC_API_URL}${input}`, {
+  //   ...init,
+  //   credentials: 'include',
+  //   headers: {
+  //     'Content-Type': 'application/json',
+  //     ...(accessToken && {
+  //       Authorization: `Bearer ${accessToken}`,
+  //     }),
+  //     ...init?.headers,
+  //   },
+  // })
+
+  /**
+   * Refresh token error 401 - revalidate refresh token - logic starts
+   * In the case of simultaneous 401 errors, only one `/auth/refresh-token` request will execute,
+   * while the others will wait for its result.
+   *
+   * Revalidate access token flow (not refresh token, refresh token is set in the HttpOnly cookies by backend):
+   * API request with token -> response 401 (access token invalid) -> refreshAccessToken() -> POST /auth/refresh-token ->
+   * -> HttpOnly refreshToken auto sending -> response code 200 with body { accessToken: newToken } ->
+   * -> localStorage.setItem(ACCESS_TOKEN_LS_KEY, 'new-token') -> resending the original initial request -> success code (200, ...)
+   *
+   *
+   * 401 can mean two different things:
+   *
+   * 1. Domain error
+   *    Example:
+   *    {
+   *      code: 51,
+   *      errorsMessages: [{
+   *             "field": "credentials",
+   *             "message": "Invalid email or password"
+   *         }]
+   *    }
+   *
+   *    In this case we DON'T refresh the access token.
+   *
+   * 2. Access token is invalid/expired.
+   *    In this case backend returns a plain 401,
+   *    so we try to refresh the access token.
+   *
+   */
+  if (response.status === 401 || response.status === 498) {
+    // 1. 401 / 498 при domain error при sign-in (с InvalidCredentials error message)
+    // клонируем body response т.к. стрим можем прочитать только один раз
+    const clonedResponse = response.clone()
+
+    let errorData: unknown
+
+    try {
+      const text = await clonedResponse.text()
+      errorData = text ? JSON.parse(text) : undefined
+    } catch {
+      errorData = undefined
+    }
+
+    /**
+     * 401 + code 74 / 498 + code 74 means that the access token is invalid/expired - is used to refresh access token.
+     * Start refresh-token flow. Only these 401 / 498 errors trigger access-token refresh
+     */
+
+    if (isAccessTokenError(errorData)) {
+      try {
+        /**
+         * If several requests receive 401 simultaneously,
+         * only one refresh request is sent.
+         *
+         * Other requests wait for the same Promise.
+         */
+        if (!refreshPromise) {
+          refreshPromise = refreshAccessToken().finally(() => {
+            refreshPromise = null
+          })
+        }
+        // waiting of the Promise ends
+
+        const newAccessToken = await refreshPromise
+
+        /**
+         * Retry the original request with the new access token.
+         *
+         * createRequestInit() will redetermine whether the body is FormData.
+         *
+         * Therefore:
+         * FormData -> multipart/form-data
+         * JSON -> application/json
+         */
+        // response = await fetch(`${NEXT_PUBLIC_API_URL}${input}`, {
+        //   ...init,
+        //   credentials: 'include',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     Authorization: `Bearer ${newAccessToken}`,
+        //     ...init?.headers,
+        //   },
+        // })
+        response = await fetch(`${NEXT_PUBLIC_API_URL}${input}`, createRequestInit(newAccessToken))
+      } catch (error) {
+        /**
+         * Refresh failed.
+         *
+         * Backend now returns:
+         * 498 Invalid refresh token
+         *
+         * Therefore, the refresh token is no longer valid and
+         * the access token must be removed from localStorage.
+         */
+        localStorage.removeItem(ACCESS_TOKEN_LS_KEY)
+
+        if (error instanceof ApiError) {
+          throw error
+        }
+
+        // не «refresh token invalid», а не удалось выполнить refresh вообще - отсавить что-то одно
+        throw new ApiError(response.status, undefined) // the user becomes unauthorized (sends to auth logic to log out user) - ЭТОТ ВАРИАНТ ВЕРНУТЬ ЕСЛИ ЧТО
+        // a если с невалидным refresh token то:
+        // throw new ApiError(498, undefined) // the user becomes unauthorized
+      }
+    } else if (isErrorResponse(errorData)) {
+      // 401 с backend error response — это ошибка самого запроса.
+      // Например при sign-in: code 51 InvalidCredentials (This error must go directly to the caller)
+      // code 70 → Refresh token invalid
+      // code 71 → Refresh token missing
+      // code 72 → Refresh token expired
+      // code 80 → Session not found
+      // это ошибка самого запроса, refresh НЕ нужен
+
+      console.log(`${response.status} backend error response`) // check here
+      throw new ApiError(response.status, errorData)
+    }
+  }
+  // Refresh token error - revalidate refresh token logic ends
+
+  /**
+   * The retried request may also return 401.
+   *
+   * We DON'T refresh again here.
+   * This prevents an infinite refresh loop.
+   */
+  if (!response.ok) {
+    let errorData: unknown
+
+    try {
+      const text = await response.text()
+      errorData = text ? JSON.parse(text) : undefined
+    } catch {
+      errorData = undefined
+    }
+    console.log(errorData)
+    throw new ApiError(response.status, errorData)
+  }
+
+  const text = await response.text()
+
+  if (!text) {
+    return undefined as T
+  }
+
+  return JSON.parse(text) as T
+}
+
+/**
+ * A subsequent request following a refresh might now also return a 401—and we don't attempt to refresh it again.
+ * This is intentional to avoid an infinite loop.
+ * In this scenario, the error propagates outward, allowing the AuthProvider or subsequent logic to treat the session as invalid.
+ *
+ * if access token and !!! refresh token !!! are invalid:
+ *  GET /auth/me -> 401 -> POST /auth/refresh-token -> 401 -> localStorage.removeItem(ACCESS_TOKEN_LS_KEY) -> request() throws ApiError
+ *
+ * try {
+ *   const user = await authMe()
+ * } catch (error) {
+ *   // we get gere
+ * }
+ *
+ * the user becomes unauthorized (logged out)
+ *
+ * try {
+ *   const user = await authMe()
+ *   setUser(user)
+ * } catch {
+ *   setUser(null)
+ * }
+ */
+
+//                      GET /auth/me
+//                           │
+//                           ↓
+//                         401
+//                           │
+//              ┌────────────┴────────────┐
+//              │                         │
+//       code 73 / 74                другой code 51... НЕ refresh
+//              │                         │
+//              ↓                         ↓
+//          REFRESH                  ApiError
+//      refreshAccessToken()
+//              │
+//        ┌─────┴─────┐
+//        │           │
+//       200        498/401
+//        │           │
+//        ↓           ↓
+//  новый token    logout
+//        │
+//        ↓
+//  повторить request GET /auth/me
