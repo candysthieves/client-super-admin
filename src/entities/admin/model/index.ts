@@ -1,3 +1,6 @@
 export * from './schemas/admin-schemas'
-export * from './hooks/use-auth-me'
-export * from './queries/auth-keys'
+export * from './queries/use-auth-me'
+export * from './auth-keys'
+export { useAuthMe } from './queries/use-auth-me'
+export { useLogin } from './mutations/use-login'
+export { useLogout } from './mutations/use-logout'
