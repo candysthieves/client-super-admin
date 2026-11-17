@@ -4,7 +4,7 @@ import { Button, Modal, Typography } from '@candy.thieves/ui-kit-lumos'
 import { useRouter } from 'next/navigation'
 import { useLogout } from '@/entities/admin/model'
 import { ToastWarning } from '@/shared/ui'
-import s from './LogoutModal.module.css'
+import s from './LogoutModal.module.scss'
 
 type LogoutModalProps = {
   open: boolean

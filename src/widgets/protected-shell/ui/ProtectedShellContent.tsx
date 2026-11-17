@@ -8,12 +8,7 @@ import s from './ProtectedShellContent.module.scss'
 export const ProtectedShellContent = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname()
   const router = useRouter()
-  // TODO Temporary solution starts:
-  // const { isAuthenticated, isLoading, isHydrated } = useAuth() // uncomment
-  const isHydrated = true // comment
-  const isAuthenticated = true // comment
-  const isLoading = false // comment
-  // TODO Temporary solution ends
+  const { isAuthenticated, isLoading, isHydrated } = useAuth()
 
   const isPublicRoute = pathname === '/'
 

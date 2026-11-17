@@ -7,12 +7,8 @@ import s from './AuthShell.module.scss'
 import { AuthShellContent } from './AuthShellContent'
 
 export function AuthShell({ children }: { children: ReactNode }) {
-  // TODO Temporary solution starts:
-  // const { isAuthenticated, isLoading, isHydrated } = useAuth() // uncomment
-  const isHydrated = true // comment
-  const isAuthenticated = true // comment
-  const isLoading = false // comment
-  // TODO Temporary solution ends
+  const { isAuthenticated, isLoading, isHydrated } = useAuth()
+
   /**
    * Server cannot read localStorage, so auth state is unknown during SSR and
    * the first client render. Until it is resolved we render children as-is,
@@ -34,7 +30,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
             <AuthShellContent>{children}</AuthShellContent>
           </Suspense>
         ) : (
-          children
+          'children'
         )}
       </div>
     </>
